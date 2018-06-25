@@ -1,0 +1,23 @@
+{
+  "name": "teamtreehouse-project6-content-scraper",
+  "version": "1.0.0",
+  "description": "Content Scraper ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Melvin-Viana/TeamTreehouse-Project6-Content-Scraper.git"
+  },
+  "author": "Melvin Viana",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Melvin-Viana/TeamTreehouse-Project6-Content-Scraper/issues"
+  },
+  "homepage": "https://github.com/Melvin-Viana/TeamTreehouse-Project6-Content-Scraper#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "scrape-it": "^5.0.5"
+  }
+}
