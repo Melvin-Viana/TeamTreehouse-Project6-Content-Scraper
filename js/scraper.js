@@ -7,7 +7,7 @@ const http = require("http");
 const time = require("time-stamp");
 
 const fileName = "./data";
-const url = "http://shirts4mike.com/";
+const url = "http://shirts4mike.com/asdf";
 //========================================
 //Check if folder data exists
 if (!fs.existsSync(fileName)) {
@@ -16,12 +16,12 @@ if (!fs.existsSync(fileName)) {
 }
 //=====================================================
 //Functions for logging error data into scraper-error.log
-function logErrorData(error, dateTime) {
+function logErrorData(error) {
   //Append data to scraper-error.log
   //fs.appendFile() => creates first parameter as a file if it doesn't exist
   fs.appendFile(
     "scraper-error.log",
-    `Date:${dateTime} \n  ${error}\n `,
+    `Date:${time('[YYYY/MM/DD HH:mm]')} \n  ${error}\n `,
     function(err) {
       if (err) throw err;
     }
@@ -63,12 +63,12 @@ var promise1 = scrapeIt(`${url}shirts.php`, {
   } else {
     //http.STATUS_CODES[response.statusCode]; will return the status code error.
     const statusCodeError = new Error(
-      `HTTP request error: ${response.statusCode} ${
+      `${response.statusCode} ${
         http.STATUS_CODES[response.statusCode]
-      } `
+      }. Cannot connect to ${url} `
     );
     printError(statusCodeError);
-    logErrorData(statusCodeError, time('[YYYY/MM/DD HH:mm] (PST)'));
+    logErrorData(statusCodeError);
   }
 });
 // End of First Promise
@@ -87,7 +87,7 @@ var promise2 = promise1.then(function(array) {
         imageURL: { selector: "img", attr: "src" },
         //Price
         Price: ".shirt-details span.price"
-      }).then(({ data, response }) => {
+      }).then(({ data }) => {
         return [data.Title, data.Price, data.imageURL];
       })
     );
@@ -150,13 +150,14 @@ Catches syntax and Promise request errors.
 Logs in the error into scraper-error.log
 */
   .catch(error => {
-    logErrorData(error, time("YYYY/MM/DD:mm:ss"));
+    logErrorData(error);
 
-    function resolved(result) {}
+    function resolved() {}
 
-    function rejected(result) {
+    function rejected() {
       console.log("Promise error: check error log for details");
     }
+    //If there is a promise error, the code is
     Promise.reject(new Error(error.message)).then(resolved, rejected);
   });
 //=====================================================================================
