@@ -1,8 +1,8 @@
 // //Create a command line application that extracts data from a ecommerce site.
 
-const scrapeIt = require("scrape-it");
+const scrapeIt = require("scrape-it");//Scraper
 const fs = require("fs");
-const csv = require("fast-csv");
+const csv = require("fast-csv");// Writes CSV
 const http = require("http");
 const time = require("time-stamp");
 
@@ -144,8 +144,7 @@ Promise.all([promise1, promise2])
 
     csvStream.end();
   })
-  //End of Promise array
-  //=============================================
+  //=============================
   /*Catches any errors that occur within the promises
 Catches syntax and Promise request errors.
 Logs in the error into scraper-error.log
