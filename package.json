@@ -4,6 +4,7 @@
   "description": "Content Scraper ",
   "main": "index.js",
   "scripts": {
+    "start": "node js/scraper.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -18,7 +19,8 @@
   "homepage": "https://github.com/Melvin-Viana/TeamTreehouse-Project6-Content-Scraper#readme",
   "dependencies": {
     "fast-csv": "^2.4.1",
-    "jQuery": "^1.7.4"
+    "jQuery": "^1.7.4",
+    "time-stamp": "^2.0.0"
   },
   "devDependencies": {
     "scrape-it": "^5.0.5"

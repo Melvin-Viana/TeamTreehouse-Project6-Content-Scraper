@@ -2,28 +2,45 @@
 
 const scrapeIt = require("scrape-it");
 const fs = require("fs");
-const fileName = "./data";
 const csv = require("fast-csv");
-const http =require('http');
+const http = require("http");
+const time = require("time-stamp");
+
+const fileName = "./data";
+const url = "http://shirts4mike.com/";
+//========================================
 //Check if folder data exists
 if (!fs.existsSync(fileName)) {
   //If it doesn't exist create folder
   fs.mkdirSync(fileName);
 }
-fs.appendFile("scraper-error.log", 'Text\n',function(err){
-  if(err) throw err;
-  console.log('IS WRITTEN')
-  });
-// //============================================
-function printError(error) {
+//=====================================================
+//Functions for logging error data into scraper-error.log
+function logErrorData(error, dateTime) {
+  //Append data to scraper-error.log
+  //fs.appendFile() => creates first parameter as a file if it doesn't exist
+  fs.appendFile(
+    "scraper-error.log",
+    `Date:${dateTime} \n  ${error}\n `,
+    function(err) {
+      if (err) throw err;
+    }
+  );
+}
+
+ //============================================
+//Print error message
+ function printError(error) {
   console.error(error.message);
 }
-//===================================================
+//=================================================================================================================
 
-try{
-//First Promise acquires The URL Data
-var promise1 = new Promise((resolve),(reject)=>{
-scrapeIt(`http://shirts4mike.com/shirtasdfs.php`, {
+
+//===================================================
+/*
+  First Promise: Acquires shirt URL Links
+*/
+var promise1 = scrapeIt(`${url}shirts.php`, {
   link: {
     listItem: ".products li a",
     //Extract content from list item
@@ -34,105 +51,113 @@ scrapeIt(`http://shirts4mike.com/shirtasdfs.php`, {
       }
     }
   }
-}).then(function({ data,response }) {
-
-  if(response.statusCode===200){
-  const urlArray = data.link;
-  var array = [];
-  for (var i = 0; i < urlArray.length; i++) {
-    array.push(data.link[i]);
-  }
-  return array;} else{
+}).then(function({ data, response }) {
+  //If Promise request has response.statusCode of 200, scrape shirtUrls. 
+  if (response.statusCode === 200) {
+    const urlArray = data.link;
+    var array = [];
+    for (var i = 0; i < urlArray.length; i++) {
+      array.push(data.link[i]);
+    }
+    return array;
+  } else {
     //http.STATUS_CODES[response.statusCode]; will return the status code error.
-    const statusCodeError = new Error(`There was an error getting the message for URL.${response.statusCode}: (${http.STATUS_CODES[response.statusCode]}) `);
+    const statusCodeError = new Error(
+      `HTTP request error: ${response.statusCode} ${
+        http.STATUS_CODES[response.statusCode]
+      } `
+    );
     printError(statusCodeError);
-} 
-}
-
-);
+    logErrorData(statusCodeError, time('[YYYY/MM/DD HH:mm] (PST)'));
+  }
+});
+// End of First Promise
 //===============================================
+/*
+      Second Scrape: With the URL, scrape data from each page.
+  */
 var promise2 = promise1.then(function(array) {
   var shirtInfoArray = [];
   for (var i = 0; i < array.length; i++) {
     shirtInfoArray.push(
-      scrapeIt(`http://shirts4mike.com/${array[i].URL}`, {
+      scrapeIt(`${url}${array[i].URL}`, {
         //Title
-        Title:  { selector: "img", attr: "alt" },
+        Title: { selector: "img", attr: "alt" },
         //Image URL
         imageURL: { selector: "img", attr: "src" },
         //Price
         Price: ".shirt-details span.price"
+      }).then(({ data, response }) => {
+        return [data.Title, data.Price, data.imageURL];
       })
-        .then(({ data,response }) => {
-          if(response.statusCode===200){
-          return [data.Title, data.Price, data.imageURL];}
-          else{
-            //http.STATUS_CODES[response.statusCode]; will return the status code error.
-            const statusCodeError = new Error(`There was an error getting the message for URL.${response.statusCode}: (${http.STATUS_CODES[response.statusCode]}) `);
-            printError(statusCodeError);
-        } 
-        })
     );
   }
   //Place shirt information in Promise.All, to ensure all links are checked.
   var promises = Promise.all(shirtInfoArray);
-  //Return all of the data when info is
-  return promises
-    .then(function(values) {
-      return values;
-    });
-  }
-  
-)
-
+  //Return all of the data into the promise2 variable, which will hold an array of the Shirt Data
+  return promises.then(function(values) {
+    return values;
+  });
 });
-
+//End of 2nd Promise
 //===================================================
+/*
+    Using both promises place the values in a promise array.
+    
+    The data will be formatted  in this code so that it will display as a CSV.
+    The data includes:
+    -Title of the shirt
+    -Price of the shirt
+    -ImageURL of the shirt
+    -URL of the shirt
+    -Time the CSV was created.
 
-Promise.all([promise1, promise2]).then(function(values) {
-  var csvStream = csv.createWriteStream({ headers: true }),
-    writableStream = fs.createWriteStream("./data/my.csv");
+    
+*/
+Promise.all([promise1, promise2])
+  .then(function(values) {
+    var csvStream = csv.createWriteStream({ headers: true }),
+      writableStream = fs.createWriteStream(`./data/${time()}.csv`); //places file into data folder with todays date.
 
-  writableStream.on("finish", function() {
-    console.log("DONE!");
-  });
-  csvStream.pipe(writableStream);
-  for (var i = 0; i < values[0].length; i++) {
-    //Object that holds
-    var shirtDetailObject = {
-    //ORDER OF CSV FILE:
-    //Title
-    Title:values[1][i][0],
-    //Price
-    Price:values[1][i][1],
-    //Image URL
-    ImageURL:values[1][i][2],
-    //URL
-    URL: values[0][i].URL,
-    //Time
-    Time: new Date()
-        };
-    csvStream.write(shirtDetailObject);
-    //values[0][i]["ImageURL"]=values[1][i][1];
-  }
+    writableStream.on("finish", function() {
+      console.log("CSV file contents are written!");
+    });
+    csvStream.pipe(writableStream);
+    for (var i = 0; i < values[0].length; i++) {
+      //Object that holds
+      var shirtDetailObject = {
+        //ORDER OF CSV FILE:
+        //Title
+        Title: values[1][i][0],
+        //Price
+        Price: values[1][i][1],
+        //Image URL
+        ImageURL: url + values[1][i][2],
+        //URL
+        URL: url + values[0][i].URL,
+        //Time
+        Time: time("HH:mm:ss")
+      };
+      //Append data onto the file
+      csvStream.write(shirtDetailObject);
+    }
 
-  csvStream.end();asdf
-  console.log(values)
-});
-}
-catch(error){printError(error);
-  var csvStream = csv.createWriteStream({ headers: true }),
-  writableStream = fs.createWriteStream("./data/error.csv");
-
-  writableStream.on("finish", function() {
-    console.log("DONE!");
-  });
-
-  csvStream.pipe(writableStream);
-  var today = new Date();
-  var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
-  var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-  var dateTime = date+' '+time;
-    csvStream.write({"Date":dateTime,"Error":error.message});
     csvStream.end();
-}
+  })
+  //End of Promise array
+  //=============================================
+  /*Catches any errors that occur within the promises
+Catches syntax and Promise request errors.
+Logs in the error into scraper-error.log
+*/
+  .catch(error => {
+    logErrorData(error, time("YYYY/MM/DD:mm:ss"));
+
+    function resolved(result) {}
+
+    function rejected(result) {
+      console.log("Promise error: check error log for details");
+    }
+    Promise.reject(new Error(error.message)).then(resolved, rejected);
+  });
+//=====================================================================================
